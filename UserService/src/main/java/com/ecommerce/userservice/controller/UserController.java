@@ -1,31 +1,51 @@
 package com.ecommerce.userservice.controller;
 
-import com.ecommerce.userservice.dto.UserLoginRequestDTO;
-import com.ecommerce.userservice.dto.UserRegisterRequestDTO;
-import com.ecommerce.userservice.dto.UserResponseDTO;
+import com.ecommerce.userservice.dto.*;
 import com.ecommerce.userservice.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/user")
 public class UserController {
     @Autowired
     private UserService userService;
 
     @GetMapping("/test")
-    public UserResponseDTO getTestUser() {
-        return userService.getUserByEmail("test@example.com");
+    public ResponseEntity<UserResponseDTO> getTestUser() {
+        return ResponseEntity.ok(userService.getUserByEmail("test@example.com"));
     }
 
     @PostMapping("/register")
-    public UserResponseDTO registerUser(@Valid @RequestBody UserRegisterRequestDTO registerRequestDTO) {
-        return userService.registerUser(registerRequestDTO);
+    public ResponseEntity<UserResponseDTO> registerUser(@Valid @RequestBody UserRegisterRequestDTO registerRequestDTO) {
+        return new ResponseEntity<>(userService.registerUser(registerRequestDTO), HttpStatus.CREATED);
     }
 
     @PostMapping("/login")
-    public UserResponseDTO loginUser(@Valid @RequestBody UserLoginRequestDTO userLoginRequestDTO) {
-        return userService.loginUser(userLoginRequestDTO);
+    public ResponseEntity<JwtResponse> loginUser(@Valid @RequestBody UserLoginRequestDTO userLoginRequestDTO) {
+        return ResponseEntity.ok(userService.loginAndGetToken(userLoginRequestDTO));
+    }
+
+    @GetMapping("/details")
+    public ResponseEntity<UserProfileDTO> getUserProfileDetailsByEmail(@RequestParam String email) {
+        return ResponseEntity.ok(userService.getUserProfileByEmail(email));
+    }
+
+    @PutMapping("/update-profile")
+    public ResponseEntity<UpdateUserDTO> updateUser(@RequestBody UpdateUserDTO updateUserDTO) {
+        return ResponseEntity.ok(userService.updateUser(updateUserDTO));
+    }
+
+    @PutMapping("/update-role")
+    public ResponseEntity<UpdateRoleDTO> updateRole(@RequestBody UpdateRoleDTO updateRoleDTO) {
+        return ResponseEntity.ok(userService.updateRole(updateRoleDTO));
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Long> deleteUser(@RequestParam String email) {
+        return ResponseEntity.ok(userService.deleteUser(email));
     }
 }

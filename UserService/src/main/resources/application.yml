@@ -22,3 +22,7 @@ springdoc:
     path: /swagger-ui
   api-docs:
     path: /v3/api-docs
+
+jwt:
+  secret: MySuperSecretKeyForJWTGenerationWhichShouldBeLongEnough
+  expiration-ms: 900000 # 15 min in milliseconds
