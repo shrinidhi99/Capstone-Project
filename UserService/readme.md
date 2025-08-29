@@ -18,7 +18,7 @@ docker volume create user-mysql-data
 
 docker run --name user-mysql -p 3307:3306 -v user-mysql-data:/var/lib/mysql -d ecommerce-backend-mysql
 ```
-Verify the MySQL container running status by connecting to it via MyDQL Workbench or any other MySQL client using the credentials provided in the Dockerfile.
+Verify the MySQL container running status by connecting to it via MySQL Workbench or any other MySQL client using the credentials provided in the Dockerfile.
 Run the following SQL query in the MySQL query console to check the created database and table:
 ```sql
 select * from users_db.users;
