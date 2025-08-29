@@ -82,8 +82,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserProfileDTO getUserProfileByEmail(String email) {
-        Optional<UserProfileDTO> userProfileOpt = Optional.ofNullable(userRepository.getUserDetails(email));
-        return userProfileOpt.orElseThrow(() -> new UserNotFoundException(email));
+        UserProfileDTO userProfile = userRepository.getUserDetails(email);
+        if (userProfile == null) {
+            throw new UserNotFoundException(email);
+        }
+        return userProfile;
     }
 
     @Override
