@@ -26,19 +26,6 @@ public class UserServiceImpl implements UserService {
     private JwtUtil jwtUtil;
 
     @Override
-    public UserResponseDTO getUserByEmail(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException(email));
-
-        return UserResponseDTO.builder()
-                .id(user.getId())
-                .name(user.getName())
-                .email(user.getEmail())
-                .role(user.getRole().name())
-                .build();
-    }
-
-    @Override
     public Long getTotalRegisteredUsers() {
         return userRepository.countUsers();
     }

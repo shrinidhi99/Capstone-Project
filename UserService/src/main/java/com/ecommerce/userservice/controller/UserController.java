@@ -14,11 +14,6 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @GetMapping("/test")
-    public ResponseEntity<UserResponseDTO> getTestUser() {
-        return ResponseEntity.ok(userService.getUserByEmail("test@example.com"));
-    }
-
     @PostMapping("/register")
     public ResponseEntity<UserResponseDTO> registerUser(@Valid @RequestBody UserRegisterRequestDTO registerRequestDTO) {
         return new ResponseEntity<>(userService.registerUser(registerRequestDTO), HttpStatus.CREATED);
