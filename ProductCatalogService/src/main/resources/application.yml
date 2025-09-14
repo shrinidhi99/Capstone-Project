@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: ProductCatalogService
+  datasource:
+    url: jdbc:h2:mem:productsdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+
+    jpa:
+      hibernate:
+        ddl-auto: update
+      show-sql: true
+      open-in-view: false
+
+    h2:
+      console:
+        enabled: true
+        path: /h2-console
+
+server:
+  port: 8081
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+  api-docs:
+    path: /v3/api-docs
