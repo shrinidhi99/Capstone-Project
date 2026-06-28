@@ -23,3 +23,58 @@ Run the following SQL query in the MySQL query console to check the created data
 ```sql
 select * from users_db.users;
 ```
+
+---
+
+## 🔐 Using the APIs
+
+This service uses JWT bearer tokens for protected endpoints.
+
+### 1) Log in to get a fresh token
+
+`POST /user/login`
+
+Request body:
+```json
+{
+	"email": "user@example.com",
+	"password": "your-password"
+}
+```
+
+Successful response:
+```json
+{
+	"token": "<jwt-token>"
+}
+```
+
+### 2) Send the token on protected requests
+
+In Postman, set the Authorization header to:
+
+`Authorization: Bearer <jwt-token>`
+
+The token expires after 15 minutes, so if you reopen Postman later you will usually need to log in again and copy a new token.
+
+### 3) Endpoints
+
+Public endpoints:
+- `POST /user/register`
+- `POST /user/login`
+- `GET /health/app`
+- `GET /health/db`
+- Swagger UI at `/swagger-ui`
+
+Protected endpoints:
+- `GET /user/details?email=...`
+- `PUT /user/update-profile`
+- `PUT /user/update-role`
+- `DELETE /user?email=...`
+
+### 4) Quick Postman flow
+
+1. Call `POST /user/login` with a valid email and password.
+2. Copy the returned token.
+3. Paste it into the Bearer Token field for the next request.
+4. Re-login whenever you see `403` from an expired or missing token.
