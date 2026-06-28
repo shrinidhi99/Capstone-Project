@@ -32,27 +32,18 @@ docker run --name product-mysql -p 3308:3306 -v product-mysql-data:/var/lib/mysq
 
 ### Step 3: Configure the Spring Boot App
 
-Set these environment variables in IntelliJ run configuration or in your terminal before starting the app:
+Credentials are in `SpringBootProjects/.env` (kept outside the repo). Load it in **Run > Edit Configurations > Environment Variables** and set the active profile to `prod`.
 
-```text
-PRODUCT_DB_URL=jdbc:mysql://localhost:3308/products_db
-PRODUCT_DB_DRIVER=com.mysql.cj.jdbc.Driver
-PRODUCT_DB_USERNAME=productadmin
-PRODUCT_DB_PASSWORD=productpass
-```
-
-Without these variables, the service falls back to the in-memory H2 database for quick local testing.
+Without these variables (default profile), the service falls back to the in-memory H2 database for quick local testing.
 
 ### Step 4: Verify the Database
 
-Connect from MySQL Workbench or any MySQL client:
+Connect from MySQL Workbench or any MySQL client using the credentials from `SpringBootProjects/.env` (`PRODUCT_DB_USERNAME` / `PRODUCT_DB_PASSWORD`):
 
 ```text
 Host: localhost
 Port: 3308
 Database: products_db
-Username: productadmin
-Password: productpass
 ```
 
 Run:

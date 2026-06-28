@@ -87,15 +87,11 @@ Protected endpoints:
 
 Password reset uses Gmail SMTP to deliver a one-time token to the user's email.
 
-### Environment variable required
+### Environment variables required
 
-Set this in IntelliJ Run Configuration → Environment Variables before starting the service:
+Credentials live in `SpringBootProjects/.env` — outside the repo so they're never accidentally committed. Point IntelliJ to it under **Run > Edit Configurations > Environment Variables**.
 
-```
-GMAIL_APP_PASSWORD=<16-character-app-password>
-```
-
-Generate an App Password at: Google Account → Security → 2-Step Verification → App Passwords.
+Variables this service needs: `GMAIL_USERNAME`, `GMAIL_APP_PASSWORD`, `JWT_SECRET`, `USER_DB_*`, `USER_KAFKA_SERVERS`.
 
 ### Flow
 

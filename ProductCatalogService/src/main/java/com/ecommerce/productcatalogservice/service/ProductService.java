@@ -8,24 +8,22 @@ import java.util.List;
 
 public interface ProductService {
 
-    /** Create and persist a new product. */
     ProductResponse createProduct(ProductRequest request);
 
-    /** List products filtered by category, search term, or active status. */
+    /** category and search are both optional — pass null to skip either filter. */
     List<ProductResponse> getProducts(String category, String search, boolean includeInactive);
 
-    /** Fetch a single active product by ID. */
+    /** Only active products are returned; throws ProductNotFoundException for deactivated ones. */
     ProductResponse getProductById(Long productId);
 
-    /** List all distinct categories that have at least one active product. */
+    /** Only categories with at least one active product show up here. */
     List<String> getCategories();
 
-    /** Replace all fields of an existing product. */
+    /** Full replacement, not a patch — all fields are overwritten. */
     ProductResponse updateProduct(Long productId, ProductRequest request);
 
-    /** Update stock quantity only, leaving all other fields unchanged. */
     ProductResponse updateStock(Long productId, StockUpdateRequest request);
 
-    /** Soft-delete a product by setting active to false. */
+    /** Soft delete — sets active=false, record stays in DB. */
     void deactivateProduct(Long productId);
 }
