@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: OrderService
+  datasource:
+    url: ${ORDER_DB_URL:jdbc:mysql://localhost:3309/orders_db}
+    driver-class-name: ${ORDER_DB_DRIVER:com.mysql.cj.jdbc.Driver}
+    username: ${ORDER_DB_USERNAME:orderadmin}
+    password: ${ORDER_DB_PASSWORD:orderpass}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
+  kafka:
+    bootstrap-servers: ${ORDER_KAFKA_SERVERS:localhost:9092}
+    consumer:
+      group-id: order-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: 8083
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+  api-docs:
+    path: /v3/api-docs

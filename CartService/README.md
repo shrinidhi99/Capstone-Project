@@ -13,15 +13,10 @@ Checkout produces an `order.placed` Kafka event consumed by OrderService.
 
 ### 1. MongoDB (Docker)
 
-Build the custom image and run the container from the `CartService` root:
-
 ```bash
-docker build -t cart-mongo ./docker
 docker volume create cart-mongo-data
-docker run -d --name cart-mongo -p 27017:27017 -v cart-mongo-data:/data/db cart-mongo
+docker run -d --name cart-mongo -p 27017:27017 -v cart-mongo-data:/data/db mongo:7
 ```
-
-The init script creates the `cart_db` database, `cartadmin` user, and `carts` collection automatically on first start.
 
 ### 2. Redis (Docker)
 
@@ -47,13 +42,15 @@ docker run -d --name capstone-kafka -p 9092:9092 -e KAFKA_NODE_ID=1 -e KAFKA_PRO
 | `CART_REDIS_PORT` | `6379` | Redis port |
 | `CART_KAFKA_SERVERS` | `localhost:9092` | Kafka bootstrap servers |
 
-**The default MongoDB URI has no credentials.** Since the Docker container requires authentication, set this before running:
+No environment variables need to be set for local development. The defaults connect to all infrastructure started in the Prerequisites section.
 
-```
-CART_MONGO_URI=mongodb://cartadmin:cartpass@localhost:27017/cart_db?authSource=cart_db
-```
+## Known Issue — MongoDB SCRAM Authentication on Windows + Docker Desktop
 
-In IntelliJ: Run → Edit Configurations → Environment Variables.
+The `docker` directory contains a custom `Dockerfile` and `init.js` that set up MongoDB with authentication (`cartadmin` user, SCRAM-SHA-256). This approach works correctly when tested from inside the container (`mongosh`) but **fails consistently when the Spring Boot MongoDB Java driver (5.5.1) attempts SCRAM authentication through Docker Desktop's port mapping on Windows**.
+
+Both SCRAM-SHA-1 and SCRAM-SHA-256 return `AuthenticationFailed (error 18)` despite correct credentials. The monitor-level `hello` connection succeeds, confirming the container and port mapping are healthy — the failure is specific to authenticated data connections routed through Docker Desktop's TCP proxy on Windows.
+
+**Resolution:** Run MongoDB without authentication using the plain `mongo:7` image (see Prerequisites above). This is the standard approach for local development and is sufficient for all demo and testing scenarios.
 
 ## Running the Service
 
