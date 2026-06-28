@@ -45,4 +45,16 @@ public class UserController {
     public ResponseEntity<Long> deleteUser(@RequestParam String email) {
         return ResponseEntity.ok(userService.deleteUser(email));
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        userService.forgotPassword(request.getEmail());
+        return ResponseEntity.ok("If that email is registered, a password reset token has been sent to your inbox.");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        userService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok("Password reset successful. You can now log in with your new password.");
+    }
 }

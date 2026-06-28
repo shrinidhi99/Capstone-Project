@@ -23,7 +23,7 @@ public class SecurityConfig {
                                 "/webjars/**"
                         ).permitAll()
                         .requestMatchers("/health/**").permitAll()
-                        .requestMatchers("/user/register", "/user/login", "/user/test").permitAll()
+                        .requestMatchers("/user/register", "/user/login", "/user/forgot-password", "/user/reset-password").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
