@@ -57,11 +57,7 @@ Kafka is shared with CartService — if it's already running, skip this step.
 
 ### 4. Configure environment variables in IntelliJ
 
-Go to **Run > Edit Configurations > Environment Variables** and add:
-
-```
-ORDER_DB_URL=jdbc:mysql://localhost:3309/orders_db;ORDER_DB_USERNAME=orderadmin;ORDER_DB_PASSWORD=orderpass;ORDER_KAFKA_SERVERS=localhost:9092
-```
+All values are in `SpringBootProjects/.env`. Add them via **Run > Edit Configurations > Environment Variables** — the ones this service actually uses are `ORDER_DB_URL`, `ORDER_DB_USERNAME`, `ORDER_DB_PASSWORD`, and `ORDER_KAFKA_SERVERS`.
 
 ### 5. Run the application
 

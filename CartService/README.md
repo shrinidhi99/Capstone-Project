@@ -42,7 +42,7 @@ docker run -d --name capstone-kafka -p 9092:9092 -e KAFKA_NODE_ID=1 -e KAFKA_PRO
 | `CART_REDIS_PORT` | `6379` | Redis port |
 | `CART_KAFKA_SERVERS` | `localhost:9092` | Kafka bootstrap servers |
 
-No environment variables need to be set for local development. The defaults connect to all infrastructure started in the Prerequisites section.
+The `.env` file at `SpringBootProjects/.env` has all the values — load it in the run config. For local dev the defaults above are fine as-is.
 
 ## Known Issue — MongoDB SCRAM Authentication on Windows + Docker Desktop
 

@@ -8,21 +8,18 @@ import com.ecommerce.cartservice.dto.UpdateQuantityRequest;
 
 public interface CartService {
 
-    /** Adds a product to the cart, or increments quantity if already present. */
+    /** Upserts — increments quantity if the product is already in the cart. */
     CartResponse addItem(String userId, AddItemRequest request);
 
-    /** Returns cart from Redis cache, falling back to MongoDB on miss. */
+    /** Redis-first; falls back to MongoDB on cache miss. */
     CartResponse getCart(String userId);
 
-    /** Sets the quantity of a specific item in the cart. */
     CartResponse updateItemQuantity(String userId, Long productId, UpdateQuantityRequest request);
 
-    /** Removes a specific product from the cart. */
     CartResponse removeItem(String userId, Long productId);
 
-    /** Clears all items from the cart and resets the total to zero. */
     void clearCart(String userId);
 
-    /** Publishes an order.placed Kafka event and clears the cart. */
+    /** Fires order.placed Kafka event then wipes the cart. */
     CheckoutResponse checkout(String userId, CheckoutRequest request);
 }

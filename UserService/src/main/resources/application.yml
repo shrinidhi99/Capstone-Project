@@ -3,9 +3,9 @@ spring:
     name: UserService
 
   datasource:
-    url: jdbc:mysql://localhost:3307/users_db
-    username: useradmin
-    password: userpass
+    url: ${USER_DB_URL:jdbc:mysql://localhost:3307/users_db}
+    username: ${USER_DB_USERNAME:useradmin}
+    password: ${USER_DB_PASSWORD:userpass}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -17,7 +17,7 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: shrinidhi99.varna@gmail.com
+    username: ${GMAIL_USERNAME}
     password: ${GMAIL_APP_PASSWORD}
     properties:
       mail:
@@ -44,5 +44,5 @@ springdoc:
     path: /v3/api-docs
 
 jwt:
-  secret: MySuperSecretKeyForJWTGenerationWhichShouldBeLongEnough
+  secret: ${JWT_SECRET}
   expiration-ms: 900000 # 15 min in milliseconds
