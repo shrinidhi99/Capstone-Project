@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: CartService
+  data:
+    mongodb:
+      uri: ${CART_MONGO_URI:mongodb://localhost:27017/cart_db}
+    redis:
+      host: ${CART_REDIS_HOST:localhost}
+      port: ${CART_REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${CART_KAFKA_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: 8082
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui
+  api-docs:
+    path: /v3/api-docs
