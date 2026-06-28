@@ -2,21 +2,21 @@ spring:
   application:
     name: ProductCatalogService
   datasource:
-    url: jdbc:h2:mem:productsdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: password
+    url: ${PRODUCT_DB_URL:jdbc:h2:mem:productsdb}
+    driver-class-name: ${PRODUCT_DB_DRIVER:org.h2.Driver}
+    username: ${PRODUCT_DB_USERNAME:sa}
+    password: ${PRODUCT_DB_PASSWORD:password}
 
-    jpa:
-      hibernate:
-        ddl-auto: update
-      show-sql: true
-      open-in-view: false
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
 
-    h2:
-      console:
-        enabled: true
-        path: /h2-console
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
 
 server:
   port: 8081
