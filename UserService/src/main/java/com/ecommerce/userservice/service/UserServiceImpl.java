@@ -6,43 +6,53 @@ import com.ecommerce.userservice.model.Role;
 import com.ecommerce.userservice.model.User;
 import com.ecommerce.userservice.repository.UserRepository;
 import com.ecommerce.userservice.security.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
-
-    @Autowired
-    private JwtUtil jwtUtil;
+    public UserServiceImpl(UserRepository userRepository,
+                           BCryptPasswordEncoder passwordEncoder,
+                           JwtUtil jwtUtil) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
+    }
 
     @Override
     public Long getTotalRegisteredUsers() {
-        return userRepository.countUsers();
+        Long count = userRepository.countUsers();
+        log.info("getTotalRegisteredUsers — count: {}", count);
+        return count;
     }
 
     @Override
     public UserResponseDTO registerUser(UserRegisterRequestDTO request) {
+        log.info("registerUser called — name: {}, email: {}", request.getName(), request.getEmail());
+
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            log.warn("Registration failed — email already exists: {}", request.getEmail());
             throw new UserAlreadyExistsException(request.getEmail());
         }
+
         String hashedPassword = passwordEncoder.encode(request.getPassword());
         User user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
                 .passwordHash(hashedPassword)
-                .role(Role.USER) // Default role
+                .role(Role.USER)
                 .build();
         user = userRepository.save(user);
+        log.info("[MySQL] User registered successfully — id: {}, email: {}", user.getId(), user.getEmail());
+
         return UserResponseDTO.builder()
                 .id(user.getId())
                 .name(user.getName())
@@ -52,90 +62,85 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponseDTO loginUser(UserLoginRequestDTO request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UserNotFoundException(request.getEmail()));
-        boolean passwordMatch = passwordEncoder.matches(request.getPassword(), user.getPasswordHash());
+    public JwtResponse loginAndGetToken(UserLoginRequestDTO request) {
+        log.info("loginAndGetToken called — email: {}", request.getEmail());
 
-        if (!passwordMatch) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> {
+                    log.warn("Login failed — user not found for email: {}", request.getEmail());
+                    return new UserNotFoundException(request.getEmail());
+                });
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            log.warn("Login failed — invalid credentials for email: {}", request.getEmail());
             throw new InvalidCredentialsException();
         }
 
-        return UserResponseDTO.builder()
-                .id(user.getId())
-                .name(user.getName())
-                .email(user.getEmail())
-                .role(user.getRole().name())
-                .build();
-    }
-
-    @Override
-    public JwtResponse loginAndGetToken(UserLoginRequestDTO loginRequestDTO) {
-        UserResponseDTO userResponse = loginUser(loginRequestDTO);
-
-        // Generate token using the email + role
-        String token = jwtUtil.generateToken(userResponse.getEmail(), userResponse.getRole());
-
+        log.info("Login successful — email: {}, role: {}", user.getEmail(), user.getRole());
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole().name());
+        log.info("JWT token generated for email: {}", user.getEmail());
         return new JwtResponse(token);
     }
 
-
     @Override
     public UserProfileDTO getUserProfileByEmail(String email) {
+        log.info("getUserProfileByEmail called — email: {}", email);
         UserProfileDTO userProfile = userRepository.getUserDetails(email);
         if (userProfile == null) {
+            log.warn("[MySQL] User profile not found for email: {}", email);
             throw new UserNotFoundException(email);
         }
+        log.info("[MySQL] User profile fetched for email: {}", email);
         return userProfile;
     }
 
     @Override
     public UpdateUserDTO updateUser(UpdateUserDTO updateUserDTO) {
-        // Get current user from security context
+        log.info("updateUser called — targetEmail: {}, newEmail: {}, newName: {}",
+                updateUserDTO.getCurrentEmail(), updateUserDTO.getNewEmail(), updateUserDTO.getName());
+
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String currentUserEmail = auth.getName(); // email from JWT
-        String currentUserRole = auth.getAuthorities().iterator().next().getAuthority(); // ROLE_USER / ROLE_ADMIN
+        String currentUserEmail = auth.getName();
+        String currentUserRole = auth.getAuthorities().iterator().next().getAuthority();
+        log.info("Authenticated as — email: {}, role: {}", currentUserEmail, currentUserRole);
 
         String targetEmail = updateUserDTO.getCurrentEmail();
-        String newEmail = updateUserDTO.getNewEmail();
-
         User user = userRepository.findByEmail(targetEmail)
-                .orElseThrow(() -> new UserNotFoundException(targetEmail));
+                .orElseThrow(() -> {
+                    log.warn("[MySQL] User not found for email: {}", targetEmail);
+                    return new UserNotFoundException(targetEmail);
+                });
 
-        // Authorization check
         if (!currentUserRole.equals("ROLE_ADMIN") && !currentUserEmail.equals(targetEmail)) {
+            log.warn("Unauthorised update attempt — {} tried to update profile of {}", currentUserEmail, targetEmail);
             throw new UnauthorizedException("You cannot update another user's profile.");
         }
 
-        // Email change logic
+        String newEmail = updateUserDTO.getNewEmail();
         if (newEmail != null && !newEmail.equals(user.getEmail())) {
             if (userRepository.findByEmail(newEmail).isPresent()) {
-                // to avoid taking over an existing email
+                log.warn("Email update failed — {} is already taken", newEmail);
                 throw new EmailAlreadyExistsException(newEmail);
             }
+            log.info("Updating email from {} to {}", user.getEmail(), newEmail);
             user.setEmail(newEmail);
         }
 
-        // Update name if provided
         String newName = updateUserDTO.getName();
         if (newName != null && !newName.isBlank()) {
+            log.info("Updating name to: {}", newName);
             user.setName(newName);
         }
 
-        // Save updated user
         User updatedUser = userRepository.save(user);
-
-        // Map back to DTO (sending updated values)
-        return new UpdateUserDTO(
-                updatedUser.getEmail(),   // currentEmail (now effectively the "active" email)
-                null,                     // newEmail is not relevant in response
-                updatedUser.getName()
-        );
+        log.info("[MySQL] User updated successfully — email: {}", updatedUser.getEmail());
+        return new UpdateUserDTO(updatedUser.getEmail(), null, updatedUser.getName());
     }
-
 
     @Override
     public UpdateRoleDTO updateRole(UpdateRoleDTO updateRoleDTO) {
+        log.info("updateRole called — targetEmail: {}, newRole: {}", updateRoleDTO.getEmail(), updateRoleDTO.getRole());
+
         String targetEmail = updateRoleDTO.getEmail();
         String roleToUpdate = updateRoleDTO.getRole();
 
@@ -146,53 +151,48 @@ public class UserServiceImpl implements UserService {
             throw new IllegalArgumentException("Role must be provided.");
         }
 
-        // Get current user from security context
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String currentUserRole = auth.getAuthorities().iterator().next().getAuthority(); // ROLE_USER / ROLE_ADMIN
+        String currentUserRole = auth.getAuthorities().iterator().next().getAuthority();
+        log.info("Role update requested by user with role: {}", currentUserRole);
 
-        // Only ADMIN can update roles
         if (!"ROLE_ADMIN".equals(currentUserRole)) {
+            log.warn("Unauthorised role update attempt — requester role: {}", currentUserRole);
             throw new UnauthorizedException("Only admins can update roles.");
         }
 
-        // Fetch the user to update
         User user = userRepository.findByEmail(targetEmail)
-                .orElseThrow(() -> new UserNotFoundException(targetEmail));
+                .orElseThrow(() -> {
+                    log.warn("[MySQL] User not found for email: {}", targetEmail);
+                    return new UserNotFoundException(targetEmail);
+                });
 
-        // Validate role value
         Role newRole;
         try {
             newRole = Role.valueOf(roleToUpdate.toUpperCase());
         } catch (IllegalArgumentException e) {
+            log.warn("Invalid role value provided: {}", roleToUpdate);
             throw new IllegalArgumentException("Invalid role: " + roleToUpdate);
         }
 
-        // Update role and save
         user.setRole(newRole);
         User updatedUser = userRepository.save(user);
-
-        // Map back to DTO
-        return new UpdateRoleDTO(
-                updatedUser.getEmail(),
-                updatedUser.getRole().name()
-        );
+        log.info("[MySQL] Role updated for email: {} — new role: {}", updatedUser.getEmail(), updatedUser.getRole());
+        return new UpdateRoleDTO(updatedUser.getEmail(), updatedUser.getRole().name());
     }
-
 
     @Override
     public Long deleteUser(String email) {
+        log.info("deleteUser called — email: {}", email);
+
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException(email));
+                .orElseThrow(() -> {
+                    log.warn("[MySQL] User not found for email: {}", email);
+                    return new UserNotFoundException(email);
+                });
 
-        // Store the id before deletion
         Long deletedUserId = user.getId();
-
-        // Delete the user
         userRepository.delete(user);
-
-        // Return the deleted user's id
+        log.info("[MySQL] User deleted — id: {}, email: {}", deletedUserId, email);
         return deletedUserId;
     }
-
-
 }
