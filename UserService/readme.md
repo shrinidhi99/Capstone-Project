@@ -62,6 +62,8 @@ The token expires after 15 minutes, so if you reopen Postman later you will usua
 Public endpoints:
 - `POST /user/register`
 - `POST /user/login`
+- `POST /user/forgot-password`
+- `POST /user/reset-password`
 - `GET /health/app`
 - `GET /health/db`
 - Swagger UI at `/swagger-ui`
@@ -78,3 +80,65 @@ Protected endpoints:
 2. Copy the returned token.
 3. Paste it into the Bearer Token field for the next request.
 4. Re-login whenever you see `403` from an expired or missing token.
+
+---
+
+## Password Reset
+
+Password reset uses Gmail SMTP to deliver a one-time token to the user's email.
+
+### Environment variable required
+
+Set this in IntelliJ Run Configuration → Environment Variables before starting the service:
+
+```
+GMAIL_APP_PASSWORD=<16-character-app-password>
+```
+
+Generate an App Password at: Google Account → Security → 2-Step Verification → App Passwords.
+
+### Flow
+
+**Step 1** — Request a reset token:
+
+`POST /user/forgot-password`
+
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+The token is emailed to the address. It expires in 15 minutes.
+
+**Step 2** — Reset the password:
+
+`POST /user/reset-password`
+
+```json
+{
+  "token": "<token-from-email>",
+  "newPassword": "newpassword123"
+}
+```
+
+---
+
+## Kafka Events
+
+Registration publishes a `user.registered` event to Kafka.
+
+**Topic:** `user.registered`
+
+**Payload:**
+```json
+{
+  "userId": 1,
+  "name": "John Doe",
+  "email": "user@example.com",
+  "role": "USER",
+  "registeredAt": "2026-06-28T23:22:30"
+}
+```
+
+Kafka must be running on `localhost:9092` before starting the service. Override with env var `USER_KAFKA_SERVERS`.
