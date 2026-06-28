@@ -1,30 +1,53 @@
 package com.ecommerce.userservice.service;
 
 import com.ecommerce.userservice.dto.*;
+import com.ecommerce.userservice.event.UserRegisteredEvent;
 import com.ecommerce.userservice.exception.*;
+import com.ecommerce.userservice.service.EmailService;
+import com.ecommerce.userservice.service.PasswordResetTokenStore;
 import com.ecommerce.userservice.model.Role;
 import com.ecommerce.userservice.model.User;
 import com.ecommerce.userservice.repository.UserRepository;
 import com.ecommerce.userservice.security.JwtUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Slf4j
 @Service
 public class UserServiceImpl implements UserService {
+
+    private static final String USER_REGISTERED_TOPIC = "user.registered";
+
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final ObjectMapper objectMapper;
+    private final EmailService emailService;
+    private final PasswordResetTokenStore tokenStore;
 
     public UserServiceImpl(UserRepository userRepository,
                            BCryptPasswordEncoder passwordEncoder,
-                           JwtUtil jwtUtil) {
+                           JwtUtil jwtUtil,
+                           KafkaTemplate<String, String> kafkaTemplate,
+                           ObjectMapper objectMapper,
+                           EmailService emailService,
+                           PasswordResetTokenStore tokenStore) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.kafkaTemplate = kafkaTemplate;
+        this.objectMapper = objectMapper;
+        this.emailService = emailService;
+        this.tokenStore = tokenStore;
     }
 
     @Override
@@ -52,6 +75,8 @@ public class UserServiceImpl implements UserService {
                 .build();
         user = userRepository.save(user);
         log.info("[MySQL] User registered successfully — id: {}, email: {}", user.getId(), user.getEmail());
+
+        publishUserRegisteredEvent(user);
 
         return UserResponseDTO.builder()
                 .id(user.getId())
@@ -194,5 +219,46 @@ public class UserServiceImpl implements UserService {
         userRepository.delete(user);
         log.info("[MySQL] User deleted — id: {}, email: {}", deletedUserId, email);
         return deletedUserId;
+    }
+
+    @Override
+    public void forgotPassword(String email) {
+        log.info("forgotPassword called — email: {}", email);
+        userRepository.findByEmail(email).ifPresentOrElse(user -> {
+            String token = tokenStore.createToken(email);
+            emailService.sendPasswordResetEmail(email, token);
+        }, () -> log.warn("forgotPassword — no account for email: {}", email));
+    }
+
+    @Override
+    public void resetPassword(String token, String newPassword) {
+        log.info("resetPassword called");
+        String email = tokenStore.resolveEmail(token);
+        if (email == null) {
+            throw new InvalidResetTokenException();
+        }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException(email));
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        tokenStore.invalidate(token);
+        log.info("[MySQL] Password reset successful — email: {}", email);
+    }
+
+    private void publishUserRegisteredEvent(User user) {
+        UserRegisteredEvent event = UserRegisteredEvent.builder()
+                .userId(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .registeredAt(LocalDateTime.now())
+                .build();
+        try {
+            String payload = objectMapper.writeValueAsString(event);
+            kafkaTemplate.send(USER_REGISTERED_TOPIC, user.getEmail(), payload);
+            log.info("[Kafka] Published user.registered event — userId: {}, email: {}", user.getId(), user.getEmail());
+        } catch (JsonProcessingException e) {
+            log.error("[Kafka] Failed to publish user.registered event for email: {}", user.getEmail());
+        }
     }
 }

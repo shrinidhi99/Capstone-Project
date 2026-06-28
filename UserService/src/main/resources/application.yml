@@ -14,6 +14,26 @@ spring:
     show-sql: true
     open-in-view: false
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: shrinidhi99.varna@gmail.com
+    password: ${GMAIL_APP_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+  kafka:
+    bootstrap-servers: ${USER_KAFKA_SERVERS:localhost:9092}
+    producer:
+      client-id: UserService-producer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
 server:
   port: 8080
 

@@ -10,4 +10,6 @@ public interface UserService {
     UpdateUserDTO updateUser(UpdateUserDTO updateUserDTO);
     UpdateRoleDTO updateRole(UpdateRoleDTO updateRoleDTO);
     Long deleteUser(String email);
+    void forgotPassword(String email);
+    void resetPassword(String token, String newPassword);
 }
